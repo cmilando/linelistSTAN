@@ -81,9 +81,9 @@ lines(x = summaryx$pred_onset, y = summaryx$lb, col='green')
 lines(x = summaryx$pred_onset, y = summaryx$ub, col='green')
 lines(x = summaryx$pred_onset, y = summaryx$ex, col='red')
 legend("topright", 
-       legend = c("Reported cases", "Observed Onset", "Lower Bound", 
-                  "Upper Bound", "Predicted Onset"), 
-       col = c("black", "blue", "green", "green", "red"), 
-       lty = c(NA, 1, 1, 1, 1), # Line types
-       pch = c(1, NA, NA, NA, NA), # Point types (1 is a default point type)
+       legend = c("Reported cases", "Observed Onset", "Empircal CI", 
+                  "Predicted Onset"), 
+       col = c("black", "blue", "green", "red"), 
+       lty = c(NA, 1, 1, 1), # Line types
+       pch = c(1, NA, NA, NA), # Point types (1 is a default point type)
        cex = 0.8) # Text size

@@ -1,6 +1,6 @@
 data {
   int<lower=1> N;   // Number of individuals
-  int<lower=1> J;   // Number of Betas: aka n weeks
+  int<lower=1> J;   // Number of Betas: aka n weeks + 1 is_weekend
   matrix[N, J] dum; // matrix of indicator values
   int Y[N];         // observed reporting delays
 }
