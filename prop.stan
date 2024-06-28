@@ -1,4 +1,4 @@
-functions {
+
   // * x = repporting delay (integer)
   // * onset = onset day (integer)
   vector prop(vector x, vector onset, int maxdelay, int cd) {
@@ -57,4 +57,3 @@ functions {
 
     return result;
   }
-}  

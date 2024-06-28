@@ -11,16 +11,16 @@ caseCounts <- create_caseCounts(sample_dates, sample_location, sample_cases)[1:8
 set.seed(123)
 ll <- convert_to_linelist(caseCounts, reportF_missP = 0.60)
 
-which(is.na(ll$onset_date))
-sip <- si(14, 4.29, 1.18)
-out_list_demo <- run_backnow(ll, 
-                             MAX_ITER = as.integer(2000), 
-                             norm_sigma = 0.2,
-                             sip = sip,
-                             NB_maxdelay = as.integer(20),
-                             NB_size = as.integer(6),
-                             printProgress = 1)
-plot(out_list_demo, 'est')
+# which(is.na(ll$onset_date))
+# sip <- si(14, 4.29, 1.18)
+# out_list_demo <- run_backnow(ll, 
+#                              MAX_ITER = as.integer(2000), 
+#                              norm_sigma = 0.2,
+#                              sip = sip,
+#                              NB_maxdelay = as.integer(20),
+#                              NB_size = as.integer(6),
+#                              printProgress = 1)
+# plot(out_list_demo, 'est')
 #############
 
 # ll <- data.frame(ll) %>% filter(!is.na(delay_int))
@@ -52,19 +52,6 @@ miss_rows <- is.na(dt_wide$onset_date_int)
 miss_rows2 <- is.na(Y)
 identical(miss_rows, miss_rows2)
 
-## CHECK THAT YOU HAVE AT LEAST ONE PERSON PER WEEK
-## This is the reason he does that is that it ensures
-## that you have estimates for every week
-ll %>%
-  group_by(week_int) %>%
-  summarize(
-    .groups = 'keep',
-    n = n(),
-    n_not_na = sum(!is.na(onset_date) * 1)
-  )
-
-
-
 ########
 
 stan_data <- list(
@@ -72,7 +59,7 @@ stan_data <- list(
   J = as.integer(n_weeks + 1),
   sipN = as.integer(length(sip)),
   sip = sip,
-  maxdelay = as.integer(20),
+  maxdelay = as.integer(30),
   missvector = as.integer(1*miss_rows),
   ndays = max(dt_wide$report_date_int),
   windowsize = as.integer(6),
@@ -87,6 +74,9 @@ stan_data <- list(
   ReportDays = as.integer(unlist(dt_wide[miss_rows, 3]))
 )
 
+## RIGHT so the reason he does that is that it ensures
+## that you have estimates for every week
+
 ########
 
 mod1 <- stan(file = "linelistBayes.stan", data = stan_data, chains = 1)
@@ -94,16 +84,7 @@ mod1 <- stan(file = "linelistBayes.stan", data = stan_data, chains = 1)
 ########
 
 out <- rstan::extract(mod1)
-
 any(is.na(out$mu_miss))
-
-any(out$day_onset_tally_tail < 1)
-
-# tt <- as.matrix(dt_wide[miss_rows, -c(1:3)]) %*% out$betas[6,]
-# dim(tt)
-# head(tt)
-
-########
 
 med <- apply(out$day_onset_tally, 2, quantile, probs = 0.5)
 lb <- apply(out$day_onset_tally, 2, quantile, probs = 0.025)
@@ -112,6 +93,8 @@ out_df <- data.frame(
   x = out$day_onset_tally_x[1, ],
   med, lb, ub
 )
+
+########
 
 plot(out_list_demo, 'est')
 lines(x = reference_date+out_df$x, y = out_df$med, col='blue')
@@ -127,33 +110,4 @@ legend("topright",
        cex = 0.8) # Text size
 
 
-########
-length(out$day_onset_tally_x[1, ]) # ndays + maxdelay
-# ndays + maxdelay - windowsize - 1
-med <- c(rep(NA, 6 + 1), apply(out$rt, 2, quantile, probs = 0.5))
-lb <- c(rep(NA, 6 + 1), apply(out$rt, 2, quantile, probs = 0.025))
-ub <-c(rep(NA, 6 + 1),  apply(out$rt, 2, quantile, probs = 0.975))
-
-out_df <- data.frame(
-  x = out$day_onset_tally_x[1, ],
-  med, 
-  lb, 
-  ub
-) 
-head(out_df)
-
-plot(out_df$med, type = 'pl')
-
-plot(out_list_demo, 'rt')
-lines(x = reference_date+out_df$x, y = out_df$med, col='blue')
-lines(x = reference_date+out_df$x, y = out_df$lb, col='green')
-lines(x = reference_date+out_df$x, y = out_df$ub, col='green')
-
-legend("topright", 
-       legend = c("Reported cases", "Predicted Onset_new", "Empircal CI", 
-                  "Predicted Onset_old"), 
-       col = c("black", "blue", "green", "red"), 
-       lty = c(NA, 1, 1, 1), # Line types
-       pch = c(1, NA, NA, NA), # Point types (1 is a default point type)
-       cex = 0.8) # Text size
 

@@ -16,8 +16,8 @@ for starters
 
 [x] 2-Back calculation (based on the missing report delays; harder than we thought in Stan).
 
-3-Nowcasting (getting harder; see the technical details in the original PLOS CB paper).
+[x] 3-Nowcasting (getting harder; see the technical details in the original PLOS CB paper).
 
-4-Calculate the reproductive number (getting even harder, because it depends on 2, 3 and the serial interval). 
+[x] 4-Calculate the reproductive number (getting even harder, because it depends on 2, 3 and the serial interval). 
 
 5-Assemble everything together in every single iteration (one should depends on another, I would say this is probably the hardest part, how you design it). 

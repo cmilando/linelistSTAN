@@ -299,9 +299,9 @@ List backnow(NumericVector outcome, NumericVector days, IntegerVector week, Inte
     }
     }
     // Back-calculation
-    NumericVector backc (nd+maxdelay);
-    backd = days-outcome1;
-    
+    NumericVector backc (nd+maxdelay);  // create new
+    backd = days-outcome1;              // days = report - delays, so backd= onset
+      
     for (int j=0;j<(nd+maxdelay);++j){
       backc[j] = sum(backd==(j-maxdelay+1));
     }
