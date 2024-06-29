@@ -75,7 +75,7 @@ stan_data <- list(
   maxdelay = as.integer(20),
   missvector = as.integer(1*miss_rows),
   ndays = max(dt_wide$report_date_int),
-  windowsize = as.integer(6),
+  windowsize = as.integer(7),
   ##
   N_obs = as.integer(nrow(dt_wide[!miss_rows, ])),
   dum_obs = as.matrix(dt_wide[!miss_rows, -c(1:3)]),
@@ -154,13 +154,40 @@ lines(x = rt_df$x, y = rt_df$ub, col='green')
 ########
 # install.packages("EpiEstim")
 library(EpiEstim)
+library(pbapply)
 dim(out_df)
-epiR <- estimate_R(data.frame(dates = out_df$x, I = out_df$med), 
-           method = 'non_parametric_si',
-           config = make_config(list(si_distr = c(0, sip), 
-                                     t_start = 2:100 ,
-                                     t_end = 2:100 + 6)))
 
-lines(epiR$R$t_end - 20 + 1 + reference_date, epiR$R$`Median(R)`)
-lines(epiR$R$t_end - 20 + 1 + reference_date, epiR$R$`Quantile.0.025(R)`)
-lines(epiR$R$t_end - 20 + 1 + reference_date, epiR$R$`Quantile.0.975(R)`)
+windowsize = 6
+t_start <- seq(2, length(out$day_onset_tally_x[1,])-(windowsize - 1))
+t_end <- t_start + (windowsize  - 1)
+
+allRts <- pblapply(1:nrow(out$day_onset_tally), function(i) {
+  epiR <- estimate_R(data.frame(dates = out$day_onset_tally_x[1, ], 
+                                I = out$day_onset_tally[i, ]), 
+             method = 'non_parametric_si',
+             config = make_config(list(si_distr = c(0, sip),
+                                       t_start = t_start,
+                                       t_end = t_end)))
+  unlist(epiR$R$`Median(R)`)
+})
+allRts_mat <- as.matrix(do.call(rbind, allRts))
+
+Epirt_df <- data.frame(
+  x = reference_date - 20 + 1 + t_end,
+  med = apply(allRts_mat, 2, quantile, probs = 0.5), 
+  lb = apply(allRts_mat, 2, quantile, probs = 0.025), 
+  ub = apply(allRts_mat, 2, quantile, probs = 0.975)
+) 
+
+head(Epirt_df)
+plot(out_list_demo, 'rt')
+lines(Epirt_df$x, Epirt_df$med)
+lines(Epirt_df$x, Epirt_df$lb)
+lines(Epirt_df$x, Epirt_df$ub)
+
+legend("topright",
+       legend = c("EpiEstim", "Chad's STAN", "backnow.cpp"),
+       col = c("black", "blue", "red"),
+       lty = c(1, 1, 1), # Line types
+       pch = c(NA, NA, NA), # Point types (1 is a default point type)
+       cex = 0.8) # Text size
