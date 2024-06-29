@@ -79,7 +79,7 @@ data {
   matrix[N_miss, J] dum_miss;      // matrix of indicator values
   int               ReportDays[N_miss]; // which days were things reported on
   
-  // ADD A FUNCTION FOR CALCULATING R(T) BY SIP AND THE OTHERS
+  // Tells you the true order of cases
   int  missvector[N_obs + N_miss];
 }
 
@@ -97,6 +97,7 @@ transformed parameters {
   
   vector[N_miss] mu_miss;          // each person has their own mu
   mu_miss = exp(dum_miss * betas); // dot-product, gives mu_vector
+  
 }
 
 model {
@@ -203,7 +204,52 @@ generated quantities {
   
    
  }
+ 
  // --- END NOWCASTING BLOCK ---
+ 
+ // -- R(t)
+ // ok first i guess calculate lambda
+ // t - tau
+ // lambda is a function of k and 
+ 
+ // R(t) is t - windowsize, ...., t
+ 
+ vector[ndays + maxdelay] rt;
+ 
+ for(t in 1:(ndays + maxdelay)) {
+   
+   if(t < windowsize) {
+     
+     rt[t] = 0;
+     
+   } else {
+     
+     real num1 = 0;
+     real den1 = 0;
+     
+     // Each R(t) has several k loops
+     // -- right if t = windowsize, then k = 1
+     for(k in (t - windowsize + 1):(t)) {
+       
+      // Numerator is just counts
+      num1 += day_onset_tally[k];
+       
+      // Lambda
+      real lambda = 0;
+
+      for(j in 1:min(k, sipN)) {
+         lambda += day_onset_tally[k - j + 1] * sip[j];
+      }
+      
+      den1 += lambda;
+      
+     }
+
+     //
+     rt[t] = (num1 + 1)/(den1 + 0.2);
+   }
+   
+ }
  
  
   

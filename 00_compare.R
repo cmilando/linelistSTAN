@@ -95,28 +95,26 @@ mod1 <- stan(file = "linelistBayes.stan", data = stan_data, chains = 1)
 
 out <- rstan::extract(mod1)
 
-any(is.na(out$mu_miss))
+# any(is.na(out$mu_miss))
 
-any(out$day_onset_tally_tail < 1)
-
+# any(out$day_onset_tally_tail < 1)
 # tt <- as.matrix(dt_wide[miss_rows, -c(1:3)]) %*% out$betas[6,]
 # dim(tt)
 # head(tt)
 
 ########
 
-med <- apply(out$day_onset_tally, 2, quantile, probs = 0.5)
-lb <- apply(out$day_onset_tally, 2, quantile, probs = 0.025)
-ub <- apply(out$day_onset_tally, 2, quantile, probs = 0.975)
 out_df <- data.frame(
-  x = out$day_onset_tally_x[1, ],
-  med, lb, ub
+  x = reference_date + out$day_onset_tally_x[1, ],
+  med = apply(out$day_onset_tally, 2, quantile, probs = 0.5), 
+  lb = apply(out$day_onset_tally, 2, quantile, probs = 0.025), 
+  ub = apply(out$day_onset_tally, 2, quantile, probs = 0.975)
 )
 
 plot(out_list_demo, 'est')
-lines(x = reference_date+out_df$x, y = out_df$med, col='blue')
-lines(x = reference_date+out_df$x, y = out_df$lb, col='green')
-lines(x = reference_date+out_df$x, y = out_df$ub, col='green')
+lines(x = out_df$x, y = out_df$med, col='blue')
+lines(x = out_df$x, y = out_df$lb, col='green')
+lines(x = out_df$x, y = out_df$ub, col='green')
 
 legend("topright", 
        legend = c("Reported cases", "Predicted Onset_new", "Empircal CI", 
@@ -129,31 +127,40 @@ legend("topright",
 
 ########
 length(out$day_onset_tally_x[1, ]) # ndays + maxdelay
+length(out$rt[1,])
 # ndays + maxdelay - windowsize - 1
-med <- c(rep(NA, 6 + 1), apply(out$rt, 2, quantile, probs = 0.5))
-lb <- c(rep(NA, 6 + 1), apply(out$rt, 2, quantile, probs = 0.025))
-ub <-c(rep(NA, 6 + 1),  apply(out$rt, 2, quantile, probs = 0.975))
 
-out_df <- data.frame(
-  x = out$day_onset_tally_x[1, ],
-  med, 
-  lb, 
-  ub
+rt_df <- data.frame(
+  x = reference_date + out$day_onset_tally_x[1, ],
+  med = apply(out$rt, 2, quantile, probs = 0.5), 
+  lb = apply(out$rt, 2, quantile, probs = 0.025), 
+  ub = apply(out$rt, 2, quantile, probs = 0.975)
 ) 
-head(out_df)
-
-plot(out_df$med, type = 'pl')
+head(rt_df)
 
 plot(out_list_demo, 'rt')
-lines(x = reference_date+out_df$x, y = out_df$med, col='blue')
-lines(x = reference_date+out_df$x, y = out_df$lb, col='green')
-lines(x = reference_date+out_df$x, y = out_df$ub, col='green')
+lines(x = rt_df$x, y = rt_df$med, col='blue')
+lines(x = rt_df$x, y = rt_df$lb, col='green')
+lines(x = rt_df$x, y = rt_df$ub, col='green')
 
-legend("topright", 
-       legend = c("Reported cases", "Predicted Onset_new", "Empircal CI", 
-                  "Predicted Onset_old"), 
-       col = c("black", "blue", "green", "red"), 
-       lty = c(NA, 1, 1, 1), # Line types
-       pch = c(1, NA, NA, NA), # Point types (1 is a default point type)
-       cex = 0.8) # Text size
+# legend("topright", 
+#        legend = c("Reported cases", "Predicted Onset_new", "Empircal CI", 
+#                   "Predicted Onset_old"), 
+#        col = c("black", "blue", "green", "red"), 
+#        lty = c(NA, 1, 1, 1), # Line types
+#        pch = c(1, NA, NA, NA), # Point types (1 is a default point type)
+#        cex = 0.8) # Text size
 
+########
+# install.packages("EpiEstim")
+library(EpiEstim)
+dim(out_df)
+epiR <- estimate_R(data.frame(dates = out_df$x, I = out_df$med), 
+           method = 'non_parametric_si',
+           config = make_config(list(si_distr = c(0, sip), 
+                                     t_start = 2:100 ,
+                                     t_end = 2:100 + 6)))
+
+lines(epiR$R$t_end - 20 + 1 + reference_date, epiR$R$`Median(R)`)
+lines(epiR$R$t_end - 20 + 1 + reference_date, epiR$R$`Quantile.0.025(R)`)
+lines(epiR$R$t_end - 20 + 1 + reference_date, epiR$R$`Quantile.0.975(R)`)

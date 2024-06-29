@@ -93,7 +93,6 @@ NumericMatrix dummy(IntegerVector week, IntegerVector weekend){
 }
 
 // function to make proportion of counts from 0 to maxdelay
-// [[Rcpp::export]]
 NumericVector prop(NumericVector x, NumericVector onset, int maxdelay, int cd){
   LogicalVector v = (x<=maxdelay)&(onset>=cd);
   NumericVector x1 = x[v];
@@ -212,18 +211,6 @@ List backnow(NumericVector outcome, NumericVector days, IntegerVector week, Inte
   NumericVector dayseq = as<NumericVector>(x);
   NumericVector p;
   NumericVector s;
-  NumericVector backd;
-  
-  NumericVector back1;
-  NumericVector check0;
-  LogicalVector l;
-  NumericVector back2;  
-  NumericVector trunc;
-  NumericVector now;
-  NumericVector now1;
-  LogicalVector check;
-  
-  
   NumericMatrix rt (iter,nd+maxdelay-size-1);
   for (int i=0;i<nmiss;++i){
     mi = missind[i];
@@ -299,48 +286,28 @@ List backnow(NumericVector outcome, NumericVector days, IntegerVector week, Inte
     }
     }
     // Back-calculation
-    NumericVector backc (nd+maxdelay);  // create new
-    backd = days-outcome1;              // days = report - delays, so backd= onset
-      
+    NumericVector backc (nd+maxdelay);
+    NumericVector backd = days-outcome1;
     for (int j=0;j<(nd+maxdelay);++j){
       backc[j] = sum(backd==(j-maxdelay+1));
     }
     // Nowcasting
     NumericVector weights = prop(outcome1,backd,maxdelay,cday);
-    
-    back1 = backc[seq(nd,nd+maxdelay-1)];
-    NumericVector check00 (back1.size());
-    check0 = check00;
-    
-    LogicalVector ll = (back1==0);
-    l = ll;
+    NumericVector back1 = backc[seq(nd,nd+maxdelay-1)];
+    NumericVector check0 (back1.size());
+    LogicalVector l = (back1==0);
     check0[l] = 1;
-    
-     back2 = back1 + check0;  
-     trunc = mapply(back2,weights,rnb);
-     now = back1+trunc;
-     now1 = now - check0;
-     check = (now1<0);
+    NumericVector back2 = back1 + check0;  
+    NumericVector trunc = mapply(back2,weights,rnb);
+    NumericVector now = back1+trunc;
+    NumericVector now1 = now - check0;
+    LogicalVector check = (now1<0);
     now1[check] = 0;
     backc[seq(nd,nd+maxdelay-1)] = now1;
-    ///
     back(i,_) = backc;
     rt(i,_) = getr(backc,si,size);
   }
-  List output = List::create(Named("Back")=back,
-                             Named("R")=rt,
-                             Named("outcome1")=outcome1,
-                             Named("backd")=backd,
-                             Named("back1")=back1,
-                             Named("l")=l,
-                             Named("back2")=back2,
-                             Named("trunc")=trunc,
-                             Named("now")=now,
-                             Named("now1")=now1,
-                             Named("check")=check,
-                             Named("check0") = check0,
-                             Named("maxdelay")=maxdelay,
-                             Named("cday")=cday);
+  List output = List::create(Named("Back")=back,Named("R")=rt);
   return output;
 }
 
