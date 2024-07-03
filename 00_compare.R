@@ -9,7 +9,9 @@ options(mc.cores = 4)
 #############
 caseCounts <- create_caseCounts(sample_dates, sample_location, sample_cases)[1:80,]
 set.seed(123)
-ll <- convert_to_linelist(caseCounts, reportF_missP = 0.60)
+ll <- convert_to_linelist(caseCounts, reportF_missP = 0.95)
+
+head()
 
 which(is.na(ll$onset_date))
 sip <- c(0, si(14, 4.29, 1.18)) ## UPDATE TO START WITH 0
@@ -91,7 +93,7 @@ stan_data <- list(
 
 ########
 
-mod1 <- stan(file = "linelistBayes.stan", data = stan_data, chains = 1)
+mod1 <- stan(file = "linelistBayes.stan", data = stan_data)
 
 ########
 
@@ -186,6 +188,9 @@ plot(out_list_demo, 'rt')
 lines(Epirt_df$x, Epirt_df$med)
 lines(Epirt_df$x, Epirt_df$lb)
 lines(Epirt_df$x, Epirt_df$ub)
+lines(x = rt_df$x, y = rt_df$med, col='blue')
+lines(x = rt_df$x, y = rt_df$lb, col='green')
+lines(x = rt_df$x, y = rt_df$ub, col='green')
 
 legend("topright",
        legend = c("EpiEstim", "Chad's STAN", "backnow.cpp"),

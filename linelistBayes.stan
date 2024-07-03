@@ -107,8 +107,10 @@ model {
   phi ~ normal(0, 1);
   
   // likelihood
+  // *******************************
   // UPDATE THIS TO RIGHT TRUNCATED
   Y_obs ~ neg_binomial_2(mu_obs, phi);
+  // *******************************
   
 }
 
@@ -119,8 +121,10 @@ generated quantities {
   vector[N_miss] guessOnset;
 
   for(n in 1:N_miss) {
+    // *******************************
     // UPDATE THIS TO RIGHT TRUNCATED
     y_rep_miss[n] = neg_binomial_2_rng(mu_miss[n], phi); 
+    // *******************************
     guessOnset[n] = ReportDays[n] - y_rep_miss[n];
   }
   
