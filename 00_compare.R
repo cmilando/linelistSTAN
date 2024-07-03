@@ -12,7 +12,7 @@ set.seed(123)
 ll <- convert_to_linelist(caseCounts, reportF_missP = 0.60)
 
 which(is.na(ll$onset_date))
-sip <- si(14, 4.29, 1.18)
+sip <- c(0, si(14, 4.29, 1.18)) ## UPDATE TO START WITH 0
 out_list_demo <- run_backnow(ll, 
                              MAX_ITER = as.integer(2000), 
                              norm_sigma = 0.2,
@@ -66,6 +66,8 @@ ll %>%
 
 
 ########
+
+# sip2 <- c(0, sip)
 
 stan_data <- list(
   ##
@@ -165,7 +167,7 @@ allRts <- pblapply(1:nrow(out$day_onset_tally), function(i) {
   epiR <- estimate_R(data.frame(dates = out$day_onset_tally_x[1, ], 
                                 I = out$day_onset_tally[i, ]), 
              method = 'non',
-             config = make_config(list(si_distr = c(0, sip),
+             config = make_config(list(si_distr = sip,
                                        t_start = t_start,
                                        t_end = t_end)))
   unlist(epiR$R$`Median(R)`)
@@ -194,77 +196,4 @@ legend("topright",
 
 ########
 ## try and calculate it with matrices
-
-ndays = max(dt_wide$report_date_int)
-maxdelay = as.integer(20)
-tau = 6
-
-
-boot_i = 1
-sipN = 14
-library(pbapply)
-# maybe I'm doing lambda incorrectly
-boot_rt <- pblapply(1:nrow(out$day_onset_tally), function(boot_i) {
-  
-  rt = vector("numeric", ndays + maxdelay)
-  
-  for(t in 1:(ndays + maxdelay)) {
-    
-    k_init = t - tau
-    
-    if(k_init < 1) {
-      
-      rt[t] = NA
-      
-    } else {
-      
-      numerator = 0
-      denominator = 0
-      
-      for(k in k_init:t) {
-      
-        ## numerator
-        numerator = numerator + out$day_onset_tally[boot_i, k]
-        
-        ## denominator
-        lambda = 0
-        
-        # maybe this is supposed to be k + 1?
-        for(j in 1:min(sipN, k)) {
-          # if you don't do k - j + 1, then you get a 0 index when j = k
-          lambda = lambda + out$day_onset_tally[boot_i, k - j + 1] * sip[j] 
-          #print(paste("lambda:", lambda))
-        }
-        #print(paste("lambda:", lambda))
-        denominator = denominator + lambda
-      
-      }
-      
-      rt[t] = (numerator + 1) / (denominator + 0.2)
-  
-    }
-    
-  }
-  
-  rt
-})
-  
-rt_mat <- do.call(rbind, boot_rt)
-
-Calc2epirt_df <- data.frame(
-  #x = reference_date - 20 + 1 + t_end,
-  x = reference_date + out$day_onset_tally_x[1,],
-  med = apply(rt_mat, 2, quantile, probs = 0.5, na.rm = T), 
-  lb = apply(rt_mat, 2, quantile, probs = 0.025, na.rm = T), 
-  ub = apply(rt_mat, 2, quantile, probs = 0.975, na.rm = T)
-) 
-
-dim(Calc2epirt_df)
-
-head(Epirt_df)
-plot(out_list_demo, 'rt')
-lines(Calc2epirt_df$x, Calc2epirt_df$med)
-
-lines(Epirt_df$x, Epirt_df$lb)
-lines(Epirt_df$x, Epirt_df$ub)
 

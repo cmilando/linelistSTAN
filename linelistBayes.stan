@@ -126,6 +126,7 @@ generated quantities {
   
 
  // -- BUILD TOWARDS CALCULATING RT --> 
+ // (1) Create vetors for onset days (allOnset) and reporting delays (allY)
  vector[N_obs + N_miss] allOnset;
  vector[N_obs + N_miss] allY;
  int i_miss = 1;
@@ -142,7 +143,7 @@ generated quantities {
    }
  }
  
-  // ok now create the full summed out-matrix
+  // (2) ok now create the full summed out-matrix of daily counts
  vector[ndays + maxdelay] day_onset_tally;
  vector[ndays + maxdelay] day_onset_tally_x;
  for (j in 1:(ndays + maxdelay)){
@@ -194,12 +195,15 @@ generated quantities {
    trunc[i] =  neg_binomial_2_rng(mu_local[i], phi_local[i]);
    
    day_onset_tally_tail[i] = day_onset_tally_tail[i] + trunc[i];
+   
    if(check[i] == 1) {
      day_onset_tally_tail[i] -= 1;
    }
+   
    if(day_onset_tally_tail[i] < 0) {
      day_onset_tally_tail[i] = 0;
    }
+   
    day_onset_tally[ndays + i] = day_onset_tally_tail[i];
   
    
@@ -228,7 +232,7 @@ generated quantities {
      real den1 = 0;
      
      // Each R(t) has several k loops
-     // -- right if t = windowsize, then k = 1
+     // -- right if t = windowsize, then k = 1, so this has to be k + 1
      for(k in (t - windowsize + 1):(t)) {
        
       // Numerator is just counts
@@ -245,7 +249,7 @@ generated quantities {
       
      }
 
-     //
+     // how are 1 and 0.2 chosen?
      rt[t] = (num1 + 1)/(den1 + 0.2);
    }
    
